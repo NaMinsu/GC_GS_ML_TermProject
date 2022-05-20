@@ -4,7 +4,7 @@ import pandas as pd
 import time
 from sklearn.preprocessing import OrdinalEncoder, RobustScaler
 from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error
 
@@ -58,3 +58,20 @@ if __name__ == "__main__":
     acc = model.score(x_val, y_val)
     error = mean_squared_error(y_val, pred)
     print("Learning time: {0}, Accuracy: {1}, Loss: {2}".format(end - start, acc, error))
+
+    params = {
+        "learning_rate": [0.1, 0.2, 0.3, 0.4, 0.5],
+        "min_split_loss": [0, 5, 10, 15, 20, 25, 30],
+        "max_depth": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "max_delta_step": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "subsample": [0, 0.5, 1],
+    }
+
+    best_score = 0
+    cross_valid = 5
+    rand_cv = RandomizedSearchCV(model, param_distributions=params, cv=cross_valid, scoring='neg_mean_squared_error',
+                                 return_train_score=True, n_jobs=-1, random_state=123)
+    rand_cv.fit(x_train, y_train.values.ravel())
+    pred_cv = rand_cv.predict(x_val)
+    print("Best loss: {}".format(mean_squared_error(y_val, pred_cv)))
+    print("Best parameter: {}".format(rand_cv.best_params_))
